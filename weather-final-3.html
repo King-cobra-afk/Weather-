@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Weather</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;min-height:100vh;overflow-x:hidden}
+body{font-family:'Inter',sans-serif;transition:background 1.5s ease;min-height:100vh}
+
+/* Themes */
+body.clear{background:linear-gradient(175deg,#1a3a6b 0%,#0d1f3c 60%,#081428 100%)}
+body.cloudy{background:linear-gradient(175deg,#1e2d4a 0%,#151e30 60%,#0a1220 100%)}
+body.rain{background:linear-gradient(175deg,#0f2340 0%,#091828 60%,#050e18 100%)}
+body.thunder{background:linear-gradient(175deg,#1a0d35 0%,#100820 60%,#080410 100%)}
+body.snow{background:linear-gradient(175deg,#e8f4fd 0%,#d0e8f7 60%,#b8d8ef 100%)}
+body.hot{background:linear-gradient(175deg,#2d1200 0%,#1a0800 60%,#0d0400 100%)}
+body.fog{background:linear-gradient(175deg,#2a2f3a 0%,#1a1f28 60%,#0f1218 100%)}
+body{background:linear-gradient(175deg,#1a3a6b 0%,#0d1f3c 60%,#081428 100%)}
+
+/* Rain effect */
+.rain-wrap{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;display:none}
+body.rain .rain-wrap,body.thunder .rain-wrap{display:block}
+.raindrop{position:absolute;top:-20px;width:1px;border-radius:2px}
+
+.app{position:relative;z-index:1;max-width:420px;margin:0 auto;padding:0;min-height:100vh;display:flex;flex-direction:column}
+
+/* Top bar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 0}
+.search-wrap{display:flex;align-items:center;gap:10px;flex:1}
+.search-input{flex:1;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.15);border-radius:14px;padding:10px 16px;color:#fff;font-size:14px;font-family:'Inter',sans-serif;outline:none;backdrop-filter:blur(10px)}
+body.snow .search-input{color:#0a1628;background:rgba(0,0,0,0.08);border-color:rgba(0,0,0,0.15)}
+.search-input::placeholder{color:rgba(255,255,255,0.4)}
+body.snow .search-input::placeholder{color:rgba(0,0,0,0.35)}
+.search-btn{background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.2);border-radius:12px;padding:10px 16px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;backdrop-filter:blur(10px);transition:all 0.2s}
+.search-btn:hover{background:rgba(255,255,255,0.25)}
+
+/* Hero section */
+.hero{padding:28px 24px 20px;text-align:center}
+.city-name{font-size:28px;font-weight:700;color:#fff;letter-spacing:-0.5px;margin-bottom:4px}
+body.snow .city-name{color:#0a1628}
+.city-country{font-size:13px;color:rgba(255,255,255,0.5);letter-spacing:2px;text-transform:uppercase;margin-bottom:24px}
+body.snow .city-country{color:rgba(10,22,40,0.5)}
+
+/* 3D Icon container */
+.icon-wrap{width:160px;height:160px;margin:0 auto 20px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;transition:background 1.5s ease,box-shadow 1.5s ease}
+.icon-emoji{font-size:95px;animation:iconFloat 3s ease-in-out infinite;display:block;line-height:1;position:relative;z-index:1}
+
+.temp-big{font-size:80px;font-weight:800;color:#fff;line-height:1;letter-spacing:-4px;margin-bottom:6px}
+body.snow .temp-big{color:#0a1628}
+.temp-unit{font-size:36px;font-weight:300;opacity:0.7;letter-spacing:0}
+.weather-desc{font-size:16px;font-weight:500;color:rgba(255,255,255,0.75);letter-spacing:3px;text-transform:uppercase;margin-bottom:6px}
+body.snow .weather-desc{color:rgba(10,22,40,0.7)}
+.feels-txt{font-size:13px;color:rgba(255,255,255,0.45);letter-spacing:1px}
+body.snow .feels-txt{color:rgba(10,22,40,0.45)}
+
+/* Forecast card */
+.card{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:24px;backdrop-filter:blur(20px);margin:0 16px 14px;overflow:hidden}
+body.snow .card{background:rgba(255,255,255,0.45);border-color:rgba(255,255,255,0.7)}
+.card-title{font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,0.45);padding:14px 16px 10px}
+body.snow .card-title{color:rgba(10,22,40,0.45)}
+
+/* Weekly */
+.week-row{display:flex;gap:4px;overflow-x:auto;padding:0 12px 14px;scrollbar-width:none}
+.week-row::-webkit-scrollbar{display:none}
+.day-chip{flex-shrink:0;text-align:center;padding:10px 12px;border-radius:16px;min-width:58px;transition:all 0.2s}
+.day-chip.today{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2)}
+body.snow .day-chip.today{background:rgba(0,0,0,0.1);border-color:rgba(0,0,0,0.15)}
+.day-name{font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+body.snow .day-name{color:rgba(10,22,40,0.5)}
+.day-icon{font-size:24px;margin-bottom:8px;display:block;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.2))}
+.day-hi{font-size:15px;font-weight:700;color:#fff;margin-bottom:2px}
+body.snow .day-hi{color:#0a1628}
+.day-lo{font-size:11px;color:rgba(255,255,255,0.4)}
+body.snow .day-lo{color:rgba(10,22,40,0.4)}
+
+/* Hourly */
+.hour-row{display:flex;gap:6px;overflow-x:auto;padding:0 12px 14px;scrollbar-width:none}
+.hour-row::-webkit-scrollbar{display:none}
+.hour-chip{flex-shrink:0;text-align:center;padding:10px 10px;border-radius:14px;min-width:56px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08)}
+.hour-chip.now{background:rgba(255,255,255,0.16);border-color:rgba(255,255,255,0.25)}
+body.snow .hour-chip{background:rgba(0,0,0,0.06);border-color:rgba(0,0,0,0.1)}
+body.snow .hour-chip.now{background:rgba(0,0,0,0.14)}
+.h-time{font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;font-weight:500}
+body.snow .h-time{color:rgba(10,22,40,0.45)}
+.h-icon{font-size:20px;margin-bottom:6px;display:block}
+.h-temp{font-size:14px;font-weight:700;color:#fff}
+body.snow .h-temp{color:#0a1628}
+.h-rain{font-size:9px;color:rgba(100,180,255,0.8);margin-top:3px}
+
+/* Stats grid */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 14px}
+.stat-card{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:16px;backdrop-filter:blur(20px)}
+body.snow .stat-card{background:rgba(255,255,255,0.45);border-color:rgba(255,255,255,0.7)}
+.stat-label{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:12px}
+body.snow .stat-label{color:rgba(10,22,40,0.4)}
+.stat-val{font-size:22px;font-weight:800;color:#fff;margin-bottom:2px}
+body.snow .stat-val{color:#0a1628}
+.stat-sub{font-size:11px;color:rgba(255,255,255,0.4)}
+body.snow .stat-sub{color:rgba(10,22,40,0.4)}
+
+/* States */
+.state-box{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center}
+.state-icon{font-size:70px;margin-bottom:20px;animation:iconFloat 2s ease-in-out infinite}
+.state-txt{font-size:16px;font-weight:600;color:rgba(255,255,255,0.7);letter-spacing:2px;text-transform:uppercase;animation:blink 2s infinite}
+.err-card{background:rgba(220,50,50,0.15);border:1px solid rgba(220,50,50,0.3);border-radius:20px;padding:20px;text-align:center;color:#ff6b6b;margin:40px 20px 0;font-size:14px;line-height:1.6}
+.retry-btn{margin-top:16px;background:rgba(255,100,100,0.2);border:1px solid rgba(255,100,100,0.4);border-radius:50px;padding:10px 24px;color:#ff8888;font-size:13px;font-weight:600;cursor:pointer;width:100%}
+
+@keyframes iconFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+@keyframes rainFall{to{transform:translateY(110vh)}}
+@keyframes blink{0%,100%{opacity:0.4}50%{opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body class="clear">
+<div class="rain-wrap" id="rainWrap"></div>
+<div class="app">
+  <div class="topbar">
+    <div class="search-wrap" id="searchBox">
+      <input class="search-input" id="cityIn" placeholder="City search karr..." onkeydown="if(event.key==='Enter')doSearch()"/>
+      <button class="search-btn" onclick="doSearch()">GO</button>
+    </div>
+  </div>
+  <div id="root">
+    <div class="state-box">
+      <div class="state-icon">🌍</div>
+      <div class="state-txt">City likhh aur GO dabao</div>
+    </div>
+  </div>
+</div>
+<script>
+const WI={0:"☀️",1:"🌤️",2:"⛅",3:"☁️",45:"🌫️",48:"🌫️",51:"🌦️",53:"🌦️",55:"🌧️",61:"🌧️",63:"🌧️",65:"🌊",71:"❄️",73:"🌨️",75:"🌨️",77:"❄️",80:"🌧️",81:"⛈️",82:"⛈️",85:"🌨️",86:"❄️",95:"⛈️",96:"⛈️",99:"🌪️"};
+
+const TH={
+  clear:{cls:"clear",glow:"rgba(255,213,79,0.7)",ibg:"radial-gradient(135deg,#1e3f7a,#162d5e)",ishadow:"0 0 60px rgba(255,213,79,0.4),0 0 120px rgba(255,165,0,0.2)"},
+  cloudy:{cls:"cloudy",glow:"rgba(144,164,174,0.6)",ibg:"radial-gradient(135deg,#2a3545,#1a2535)",ishadow:"0 0 50px rgba(144,164,174,0.3)"},
+  rain:{cls:"rain",glow:"rgba(41,182,246,0.6)",ibg:"radial-gradient(135deg,#0d2a45,#091828)",ishadow:"0 0 60px rgba(41,182,246,0.4),0 0 120px rgba(0,100,200,0.2)"},
+  thunder:{cls:"thunder",glow:"rgba(186,104,200,0.7)",ibg:"radial-gradient(135deg,#1e0a35,#2d1060)",ishadow:"0 0 60px rgba(186,104,200,0.5),0 0 120px rgba(100,0,200,0.2)"},
+  snow:{cls:"snow",glow:"rgba(41,182,246,0.5)",ibg:"radial-gradient(135deg,#d0eaf8,#b8d8f0)",ishadow:"0 0 50px rgba(41,182,246,0.3)"},
+  hot:{cls:"hot",glow:"rgba(255,109,0,0.7)",ibg:"radial-gradient(135deg,#2d1200,#1a0800)",ishadow:"0 0 60px rgba(255,109,0,0.5),0 0 120px rgba(200,50,0,0.2)"},
+  fog:{cls:"fog",glow:"rgba(207,216,220,0.5)",ibg:"radial-gradient(135deg,#2a2f3a,#1a1f28)",ishadow:"0 0 40px rgba(207,216,220,0.2)"},
+};
+
+function getTheme(desc,temp){
+  const d=(desc||"").toLowerCase();
+  if(d.includes("thunder"))return"thunder";
+  if(d.includes("snow")||d.includes("blizzard"))return"snow";
+  if(d.includes("fog")||d.includes("mist")||d.includes("haze"))return"fog";
+  if(d.includes("rain")||d.includes("drizzle")||d.includes("shower"))return"rain";
+  if(d.includes("cloud")||d.includes("overcast"))return"cloudy";
+  if(temp>=38)return"hot";
+  return"clear";
+}
+
+function windDir(deg){return["N","NE","E","SE","S","SW","W","NW"][Math.round(deg/45)%8]}
+
+function buildRain(heavy){
+  const w=document.getElementById("rainWrap");w.innerHTML="";
+  for(let i=0;i<(heavy?70:35);i++){
+    const d=document.createElement("div");d.className="raindrop";
+    const h=Math.random()*50+20;
+    d.style.cssText=`left:${Math.random()*100}%;height:${h}px;width:${heavy?2:1}px;background:linear-gradient(transparent,rgba(150,210,255,0.5));opacity:${(Math.random()*0.4+0.2).toFixed(2)};animation:rainFall ${(Math.random()*0.6+0.5).toFixed(2)}s linear ${(Math.random()*2).toFixed(2)}s infinite`;
+    w.appendChild(d);
+  }
+}
+
+function applyTheme(name){
+  const t=TH[name]||TH.clear;
+  document.body.className=t.cls;
+  if(name==="rain")buildRain(false);
+  else if(name==="thunder")buildRain(true);
+  else document.getElementById("rainWrap").innerHTML="";
+  return t;
+}
+
+function gaugeSVG(val,max,color){
+  const r=32,cx=44,cy=44,sw=7,circ=2*Math.PI*r;
+  const dash=Math.min(1,val/max)*circ*0.75;
+  return`<svg width="88" height="88" viewBox="0 0 88 88">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="${sw}" stroke-dasharray="${circ*0.75} ${circ}" transform="rotate(-225 ${cx} ${cy})" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-dasharray="${dash} ${circ}" transform="rotate(-225 ${cx} ${cy})" stroke-linecap="round" style="filter:drop-shadow(0 0 6px ${color})"/>
+  </svg>`;
+}
+
+function compassSVG(deg,speed){
+  const cx=44,cy=44,r=30,rad=(deg-90)*Math.PI/180;
+  const ax=cx+r*0.6*Math.cos(rad),ay=cy+r*0.6*Math.sin(rad);
+  return`<svg width="88" height="88" viewBox="0 0 88 88">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    ${["N","E","S","W"].map((d,i)=>{const a=(i*90-90)*Math.PI/180;return`<text x="${cx+r*Math.cos(a)}" y="${cy+r*Math.sin(a)+3.5}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.35)" font-family="Inter,sans-serif" font-weight="600">${d}</text>`;}).join("")}
+    <line x1="${cx}" y1="${cy}" x2="${ax}" y2="${ay}" stroke="#ffd54f" stroke-width="3" stroke-linecap="round" style="filter:drop-shadow(0 0 5px rgba(255,213,79,0.8))"/>
+    <circle cx="${cx}" cy="${cy}" r="4" fill="#ffd54f" style="filter:drop-shadow(0 0 5px rgba(255,213,79,0.8))"/>
+  </svg>`;
+}
+
+async function callClaude(loc){
+  const res=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      model:"claude-sonnet-4-20250514",max_tokens:1000,
+      system:`Weather data provider. Respond ONLY valid JSON no markdown. Realistic current season data.
+{"city":"Name","country":"Country","temp":32,"feels":35,"desc":"Partly Cloudy","icon_code":2,"humidity":65,"wind_speed":14,"wind_dir":180,"uv":7.2,"pressure":1008,"rain":0.0,"visibility":10,"sunrise":"06:12","hourly":[{"hour":"NOW","temp":32,"rain_pct":10,"icon_code":2},{"hour":"1PM","temp":33,"rain_pct":5,"icon_code":1},{"hour":"2PM","temp":34,"rain_pct":0,"icon_code":0},{"hour":"3PM","temp":33,"rain_pct":15,"icon_code":2},{"hour":"4PM","temp":31,"rain_pct":30,"icon_code":61},{"hour":"5PM","temp":29,"rain_pct":45,"icon_code":63},{"hour":"6PM","temp":28,"rain_pct":20,"icon_code":80},{"hour":"7PM","temp":27,"rain_pct":10,"icon_code":2},{"hour":"8PM","temp":26,"rain_pct":5,"icon_code":1}],"weekly":[{"day":"TODAY","high":34,"low":24,"icon_code":2},{"day":"TUE","high":35,"low":25,"icon_code":0},{"day":"WED","high":32,"low":23,"icon_code":61},{"day":"THU","high":30,"low":22,"icon_code":63},{"day":"FRI","high":33,"low":24,"icon_code":2},{"day":"SAT","high":36,"low":26,"icon_code":0},{"day":"SUN","high":34,"low":25,"icon_code":1}]}`,
+      messages:[{role:"user",content:`Weather for: ${loc}`}]
+    })
+  });
+  const d=await res.json();
+  const txt=d.content?.find(b=>b.type==="text")?.text||"";
+  return JSON.parse(txt.replace(/```json|```/g,"").trim());
+}
+
+function render(w){
+  const th=getTheme(w.desc,w.temp);
+  const t=applyTheme(th);
+  const isSnow=th==="snow";
+  const tc=isSnow?"rgba(10,22,40,0.55)":"rgba(255,255,255,0.45)";
+  const uvc=w.uv<=2?"#4fc3f7":w.uv<=5?"#ffd54f":w.uv<=7?"#ff9800":"#f44336";
+
+  const weekHtml=w.weekly.map((d,i)=>`
+    <div class="day-chip${i===0?" today":""}">
+      <div class="day-name">${d.day}</div>
+      <span class="day-icon">${WI[d.icon_code]||"🌡️"}</span>
+      <div class="day-hi">${d.high}°</div>
+      <div class="day-lo">${d.low}° lo</div>
+    </div>`).join("");
+
+  const hourHtml=w.hourly.map((h,i)=>`
+    <div class="hour-chip${i===0?" now":""}">
+      <div class="h-time">${h.hour}</div>
+      <span class="h-icon">${WI[h.icon_code]||"🌡️"}</span>
+      <div class="h-temp">${h.temp}°</div>
+      <div class="h-rain">${h.rain_pct}%🌧</div>
+    </div>`).join("");
+
+  document.getElementById("root").innerHTML=`
+    <div class="hero">
+      <div class="city-name">${w.city}</div>
+      <div class="city-country">${w.country}</div>
+      <div class="icon-wrap" style="background:${t.ibg};box-shadow:${t.ishadow}">
+        <span class="icon-emoji" style="filter:drop-shadow(0 0 25px ${t.glow}) drop-shadow(0 8px 16px rgba(0,0,0,0.5))">${WI[w.icon_code]||"🌡️"}</span>
+      </div>
+      <div class="temp-big">${w.temp}<span class="temp-unit">°C</span></div>
+      <div class="weather-desc">${w.desc}</div>
+      <div class="feels-txt">Feels like ${w.feels}° · Rain ${w.rain}mm</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📅 10-Day Forecast</div>
+      <div class="week-row">${weekHtml}</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⏰ Hourly Forecast</div>
+      <div class="hour-row">${hourHtml}</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Humidity</div>
+        <div style="position:relative;width:88px;margin:0 auto 8px">
+          ${gaugeSVG(w.humidity,100,"#29b6f6")}
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
+            <div class="stat-val">${w.humidity}</div>
+            <div class="stat-sub">%</div>
+          </div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Wind</div>
+        <div style="position:relative;width:88px;margin:0 auto 8px">
+          ${compassSVG(w.wind_dir,w.wind_speed)}
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
+            <div class="stat-val" style="font-size:16px">${w.wind_speed}</div>
+            <div class="stat-sub">km/h ${windDir(w.wind_dir)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">UV Index</div>
+        <div style="position:relative;width:88px;margin:0 auto 8px">
+          ${gaugeSVG(w.uv,11,uvc)}
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
+            <div class="stat-val">${w.uv}</div>
+            <div class="stat-sub">${w.uv<=2?"Low":w.uv<=5?"Mod":w.uv<=7?"High":"VHigh"}</div>
+          </div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pressure</div>
+        <div style="position:relative;width:88px;margin:0 auto 8px">
+          ${gaugeSVG(Math.max(0,w.pressure-950),150,"#ce93d8")}
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
+            <div class="stat-val" style="font-size:15px">${w.pressure}</div>
+            <div class="stat-sub">hPa</div>
+          </div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Visibility</div>
+        <div class="stat-val">${w.visibility}<span style="font-size:14px;font-weight:400"> km</span></div>
+        <div class="stat-sub" style="margin-top:4px">👁️</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Sunrise</div>
+        <div class="stat-val" style="font-size:18px">${w.sunrise}</div>
+        <div class="stat-sub" style="margin-top:4px">🌅 AM</div>
+      </div>
+    </div>
+    <div style="height:20px"></div>
+  `;
+}
+
+async function doSearch(){
+  const city=document.getElementById("cityIn").value.trim();
+  if(!city)return;
+  document.getElementById("searchBox").style.display="none";
+  document.getElementById("root").innerHTML=`<div class="state-box"><div class="state-icon" style="animation:spin 2s linear infinite">🌐</div><div class="state-txt">Loading...</div></div>`;
+  try{
+    const w=await callClaude(city);
+    render(w);
+  }catch(e){
+    document.getElementById("searchBox").style.display="flex";
+    document.getElementById("root").innerHTML=`<div class="err-card">⚠ Kuch error aaya!<br>Dobara try karr.<button class="retry-btn" onclick="document.getElementById('cityIn').focus()">🔄 Try Again</button></div>`;
+  }
+}
+</script>
+</body>
+</html>
